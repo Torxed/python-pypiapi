@@ -1,4 +1,5 @@
 import sys
+import pathlib
 
 __version__ = '0.0.1.dev1'
 
@@ -12,13 +13,16 @@ positionals = []
 arguments['mirror'] = 'pypi.org'
 arguments['port'] = 443
 arguments['tls'] = True
-arguments['api-endpoint'] = '/simple'
+arguments['simple-api'] = '/simple'
+arguments['json-api'] = '/pypi'
 arguments['projects'] = 'archinstall,psycopg2'
 arguments['retain-versions'] = 3
 arguments['sort-algorithm'] = 'version'
-arguments['paralell'] = arguments['retain-versions'] * arguments['retain-versions'] # Allow 3 projects simultaniously
-arguments['one-version-increments'] = True # Always download the latest version and come back for older later
-
+# TBD: arguments['paralell'] = arguments['retain-versions'] * arguments['retain-versions'] # Allow 3 projects simultaniously
+# TBD: arguments['one-version-increments'] = True # Always download the latest version and come back for older later
+arguments['destination'] = './cache'
+arguments['timeout'] = 5
+arguments['cache-listing'] = True
 
 for arg in sys.argv[1:]:
 	if '--' == arg[:2]:
@@ -33,5 +37,7 @@ for arg in sys.argv[1:]:
 from .storage import *
 storage['arguments'] = arguments
 storage['version'] = __version__
+arguments['destination'] = pathlib.Path(arguments['destination'])
+
 from .packages import *
 from .sockethelpers import *

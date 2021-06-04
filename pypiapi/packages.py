@@ -69,9 +69,13 @@ class Package:
 			versions = list(self.information.get('releases').keys())
 			versions.sort(key=LooseVersion)
 			versions.reverse()
-			if not self.version in versions[:limit]:
+
+			if limit and self.version not in versions[:limit]:
 				versions.insert(0, self.version)
-			return versions[:limit]
+
+				return versions[:limit]
+			else:
+				return versions
 		else:
 			log(f"Unknown sorting algorithm: {storage['arguments']['sort-algorithm']}", level=logging.ERROR, fg="red")
 			exit(1)
@@ -253,6 +257,11 @@ class PackageListing:
 		log(f"Package listing is: {self.headers['content-length']} bytes")
 
 	def download(self):
-		for index in range(storage['arguments']['retain-versions']):
+		if storage['arguments'].get('retain-versions', None):
+			for index in range(storage['arguments']['retain-versions']):
+				for package in self:
+					package.download(package.versions()[index])
+		else:
 			for package in self:
-				package.download(package.versions()[index])
+				for version in package.versions():
+					package.download(version)

@@ -22,6 +22,14 @@ import pypiapi
 pypiapi.PackageListing({"archinstall" : True, "psycopg2" : True, "pypiapi" : True}).download()
 ```
 
+Third and last example will download all available verions of all packages defined on pypi.org.<br>
+The script also has to be called with `--retain-versions=''` to override the default 3-latest-versions policy.
+```python
+import pypiapi
+
+pypiapi.PackageListing().download()
+```
+
 # Parameters/flags
 
 `pypiapi` supports a couple of parameters independent of how you choose to script your downloads.<br>
@@ -49,6 +57,8 @@ These flags are as follows:
 
 --retain-versions=3
     How many versions of a package should we download/keep, given the --sort-algorithm used.
+    This option can be overridden with --retain-versions='' but should generally not be to save
+    some bandwidth of pypi.org but also yourself. Saves everyone a bunch of time to keep it default.
 
 --sort-algorithm='LooseVersion'
     This tells us how to sort the version numbers. Since version naming convention isn't really

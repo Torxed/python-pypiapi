@@ -64,7 +64,7 @@ class Package:
 		if not limit and storage['arguments']['retain-versions']:
 			limit = int(storage['arguments']['retain-versions'])
 
-		if storage['arguments']['sort-algorithm'] == 'version':
+		if storage['arguments']['sort-algorithm'] == 'LooseVersion':
 			from distutils.version import LooseVersion
 			versions = list(self.information.get('releases').keys())
 			versions.sort(key=LooseVersion)

@@ -56,6 +56,8 @@ These flags are as follows:
 
 --destination='./cache'
     Where to download the packages when we grab them.
+    Each package will get its own folder under this destination.
+    Ex: archinstall would be downloaded to ./cache/archinstall/archinstall-<version>.tar.gz
 
 --timeout=5
     If the webserver timeouts on giving us the package listing (it can be quite large).

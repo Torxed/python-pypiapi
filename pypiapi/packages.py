@@ -107,8 +107,12 @@ class Package:
 			log(f"Sending request to {file['url']}", level=logging.DEBUG)
 			request = urllib.request.urlopen(urllib.request.Request(file['url'], headers={'User-Agent': f"python-pypiapi-{storage['version']}"}))
 
-			with open(self.destination/file['filename'], "wb") as version_fh:
-				version_fh.write(request.read())
+			try:
+				with open(self.destination/file['filename'], "wb") as version_fh:
+					version_fh.write(request.read())
+			except urllib.error.URLError as err:
+				(self.destination/file['filename']).unlink()
+				log(f"Could not download {file['filename']} due to: {err}", level=logging.ERROR, fg="red")
 
 class PackageListing:
 	def __init__(self, filter_packages=None):

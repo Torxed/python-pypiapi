@@ -1,5 +1,5 @@
 # python-pypiapi
-Python library to interact with the pypi.org simple API
+Python library to interact with the pypi.org simple API defined in [PEP-503](https://www.python.org/dev/peps/pep-0503/).
 
 # Usage
 

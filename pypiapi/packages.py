@@ -4,6 +4,7 @@ import ssl
 import json
 import logging
 import pathlib
+import urllib.error
 import urllib.request
 import hashlib
 import time

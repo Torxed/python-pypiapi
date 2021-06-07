@@ -82,4 +82,12 @@ These flags are as follows:
 
     Has to be overridden with --cache-listing='' if you wish to turn it off.
 
+--py-versions=[3.0[,3.5]]
+    This will download only packages that can meet the given version requirement.
+    Default is to not filter out any supported versions and download all packages.
+
+--licenses=[gpl[,mit]]
+    Only packages that contain the given licensing short names will be downloaded.
+    The default is to download all libraries/packages.
+
 ```

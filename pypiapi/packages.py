@@ -8,10 +8,13 @@ import urllib.error
 import urllib.request
 import hashlib
 import time
+from distutils.version import LooseVersion
 
 from .storage import storage
 from .sockethelpers import epoll, EPOLLIN, EPOLLHUP
 from .logger import log
+from .licenses import licence_classifier_parser
+from .exceptions import *
 
 class Package:
 	def __init__(self, name):
@@ -52,6 +55,10 @@ class Package:
 	def version(self):
 		return self.information.get('info', {}).get('version', None)
 
+	@property
+	def license(self):
+		return licence_classifier_parser(self.information.get('info', {}).get('classifiers', {}))
+
 	def set_destination(self, destination=None):
 		if not destination:
 			destination = storage['arguments']['destination']
@@ -66,7 +73,6 @@ class Package:
 			limit = int(storage['arguments']['retain-versions'])
 
 		if storage['arguments']['sort-algorithm'] == 'LooseVersion':
-			from distutils.version import LooseVersion
 			versions = list(self.information.get('releases').keys())
 			versions.sort(key=LooseVersion)
 			versions.reverse()
@@ -81,11 +87,18 @@ class Package:
 			log(f"Unknown sorting algorithm: {storage['arguments']['sort-algorithm']}", level=logging.ERROR, fg="red")
 			exit(1)
 
-	def download(self, version, destination=None, threaded=False):
+	def download(self, version, destination=None, threaded=False, force=False) -> bool:
 		self.set_destination(destination)
 
 		if not self.information.get('releases', {}).get(version, None):
 			raise KeyError(f"Package {self.name} does not have a version called: {version}")
+
+		if force is False:
+			if storage['arguments']['licenses'] and any([license in self.license for license in storage['arguments']['licenses']]) is False:
+				raise DependencyError(f"Package {self.name}'s license {self.license} does not meet the license requirements: {storage['arguments']['licenses']}")
+
+			if storage['arguments']['py-versions'] and any([LooseVersion(self.version) >= LooseVersion(version) for version in storage['arguments']['py-versions']]) is False:
+				raise DependencyError(f"Package {self.name}'s versioning {self.version} does not meet the version requirements: {storage['arguments']['py-versions']}")
 
 		if not self.destination.exists():
 			try:
@@ -114,6 +127,8 @@ class Package:
 			except urllib.error.URLError as err:
 				(self.destination/file['filename']).unlink()
 				log(f"Could not download {file['filename']} due to: {err}", level=logging.ERROR, fg="red")
+
+		return True
 
 class PackageListing:
 	def __init__(self, filter_packages=None):
@@ -265,7 +280,10 @@ class PackageListing:
 		if storage['arguments'].get('retain-versions', None):
 			for index in range(storage['arguments']['retain-versions']):
 				for package in self:
-					package.download(package.versions()[index])
+					try:
+						package.download(package.versions()[index])
+					except DependencyError as err:
+						log(f"Skipping package {package} due to: {err}", level=logging.INFO, fg="yellow")
 		else:
 			for package in self:
 				for version in package.versions():

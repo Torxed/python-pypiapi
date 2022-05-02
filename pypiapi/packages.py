@@ -1,3 +1,4 @@
+import re
 import copy
 import socket
 import ssl
@@ -115,7 +116,7 @@ class Package:
 			except:
 				raise PermissionError(f"Could not create destination directory '{self.destination}' for package: {self.name}")
 
-		log(f"Processing {self}@version: {version}", fg="yellow", level=logging.INFO)
+		log(f"Initating download of {self}@version: {version}", fg="yellow", level=logging.INFO)
 		for file in self.information['releases'][version]:
 			target_architecture = False
 			
@@ -163,11 +164,18 @@ class PackageListing:
 		self.socket = None
 		self.pollobj = epoll()
 
+		self.full_buffer = b''
 		self.buffer = b''
 		self.buffer_pos = 0
+		self.expected_content_length = -1
 		self.headers = {}
 
 		self._filter_packages = filter_packages
+
+		with urllib.request.urlopen('https://pypi.org/') as f:
+			self.number_of_projects = int(re.findall('([0-9,.]+) (projects)', f.read().decode('utf-8'))[0][0].replace(',', '').replace('.', ''))
+
+		log(f"Found that there should be {self.number_of_projects} number of projects", level=logging.INFO, fg="gray")
 
 	def __iter__(self):
 		if not storage['arguments'].cache_listing or len(self.buffer) == 0:
@@ -179,7 +187,12 @@ class PackageListing:
 
 		filters = self.filter_packages
 
+		log(f"Retrieving entire package listing content.", level=logging.INFO, fg="yellow")
+
 		last_data = time.time()
+
+		package_count = 0
+		last_package_count_update = time.time()-10
 		while time.time() - last_data < storage['arguments'].timeout:
 			if self.socket:
 				data = None
@@ -194,6 +207,7 @@ class PackageListing:
 					continue
 
 				self.buffer += data
+				self.full_buffer += data
 
 			last_newline = self.buffer.rfind(b'\n')
 			if storage['arguments'].cache_listing:
@@ -205,10 +219,17 @@ class PackageListing:
 			for package in packages.split(b'\n'):
 				if b'</html>' in package:
 					break
-				elif not b'<a' in package:
+				elif not b'<a' in package and len(package):
 					# Warning: If they change from /simple/ then we're in trouble
 					# This wasn't a package definition according to the /simple/ API
+					log(f"The following was not a /simple/ package definition: {package}", level=logging.WARNING, fg="orange")
 					continue
+
+				package_count += 1
+
+				if time.time() - last_package_count_update > 10:
+					log(f"Processing package {package_count}/{self.number_of_projects}", level=logging.INFO, fg="gray")
+					last_package_count_update = time.time()
 
 				package_url_start = package.find(b'href=')
 				package_url_end = package.find(b'"', package_url_start+6)
@@ -239,6 +260,9 @@ class PackageListing:
 
 		if time.time() - last_data >= storage['arguments'].timeout or b'</html>' in package:
 			log(f"No more packages recieved from http(s)://{storage['arguments'].mirror}:{int(storage['arguments'].port)}{storage['arguments'].simple_api}/", level=logging.WARNING, fg="yellow")
+
+		if not self.expected_content_length == len(self.full_buffer):
+			log(f"Inconsistent data length on package listing, expected {self.expected_content_length} but got {len(self.full_buffer)}", level=logging.WARNING, fg="orange")
 
 		self.disconnect()
 		return None
@@ -302,7 +326,8 @@ class PackageListing:
 				key, val = item.split(b':', 1)
 				self.headers[key.strip().decode('UTF-8').lower()] = val.strip().decode('UTF-8')
 
-		log(f"Package listing is: {self.headers['content-length']} bytes")
+		self.expected_content_length = int(self.headers['content-length'])
+		log(f"Package listing is: {self.expected_content_length} bytes", level=logging.DEBUG, fg="yellow")
 
 	def download(self):
 		if storage['arguments'].get('retain_versions', None):

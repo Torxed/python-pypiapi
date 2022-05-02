@@ -21,6 +21,7 @@ parser.add_argument("--py-versions", default='3', type=str, nargs='?', help="Whi
 parser.add_argument("--licenses", default='', type=str, nargs='?', help="Which licenses should we filter on, detaul any. Example: --licenses 'MIT,GPLv3'")
 parser.add_argument("--architectures", default='x86_64,win_amd64,any', type=str, nargs='?', help="Which architectures (x86_64, i686, win32, win_amd64, etc) should we filter on, detaul any. Example: --licenses 'MIT,GPLv3'")
 parser.add_argument("--verbosity-level", default='info', type=str, nargs='?', help="Sets the lowest threashold for log messages, according to https://docs.python.org/3/library/logging.html#logging-levels")
+parser.add_argument("--paralell-downloads", default=2, type=int, nargs='?', help="Define how many paralell downloads can simulatniously be allowed to run.")
 
 storage['arguments'], unknowns = parser.parse_known_args()
 storage['version'] = __version__

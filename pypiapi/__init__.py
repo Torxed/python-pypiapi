@@ -19,7 +19,7 @@ parser.add_argument("--timeout", default=5, type=int, nargs='?', help="What glob
 parser.add_argument("--cache-listing", action="store_true", default=True, help="")
 parser.add_argument("--py-versions", default='3', type=str, nargs='?', help="Which python versions of packages should we grab (default to only highest)")
 parser.add_argument("--licenses", default='', type=str, nargs='?', help="Which licenses should we filter on, detaul any. Example: --licenses 'MIT,GPLv3'")
-parser.add_argument("--architectures", default='x86_64,i686,win32,win_amd64,any', type=str, nargs='?', help="Which architectures (x86_64, i686, win32, win_amd64, etc) should we filter on, detaul any. Example: --licenses 'MIT,GPLv3'")
+parser.add_argument("--architectures", default='x86_64,win_amd64,any', type=str, nargs='?', help="Which architectures (x86_64, i686, win32, win_amd64, etc) should we filter on, detaul any. Example: --licenses 'MIT,GPLv3'")
 parser.add_argument("--verbosity-level", default='info', type=str, nargs='?', help="Sets the lowest threashold for log messages, according to https://docs.python.org/3/library/logging.html#logging-levels")
 
 storage['arguments'], unknowns = parser.parse_known_args()

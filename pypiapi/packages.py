@@ -14,7 +14,10 @@ from .storage import storage
 from .sockethelpers import epoll, EPOLLIN, EPOLLHUP
 from .logger import log
 from .licenses import licence_classifier_parser
-from .exceptions import *
+from .exceptions import VersionError, DependencyError, YankedPackage
+
+def safe_version(version):
+	return version.replace('>', '').replace('<', '').replace('=', '')
 
 class Package:
 	def __init__(self, name):
@@ -34,8 +37,8 @@ class Package:
 		self.set_destination()
 
 		if not self.cache and self.destination.exists() is False:
-			log(f"Sending request to https://{storage['arguments']['mirror']}{storage['arguments']['json-api']}/{self._name}/json", level=logging.DEBUG)
-			request = urllib.request.urlopen(urllib.request.Request(f"https://{storage['arguments']['mirror']}{storage['arguments']['json-api']}/{self._name}/json", headers={'User-Agent': f"python-pypiapi-{storage['version']}"}))
+			log(f"Sending request to https://{storage['arguments'].mirror}{storage['arguments'].json_api}/{self._name}/json", level=logging.DEBUG)
+			request = urllib.request.urlopen(urllib.request.Request(f"https://{storage['arguments'].mirror}{storage['arguments'].json_api}/{self._name}/json", headers={'User-Agent': f"python-pypiapi-{storage['version']}"}))
 			self.cache = json.loads(request.read().decode('UTF-8'))
 		
 		elif self.destination and self.destination.exists() and not self.cache:
@@ -52,6 +55,13 @@ class Package:
 		return self.cache
 
 	@property
+	def python_version(self):
+		if required_python_version := self.information.get('info', {}).get('requires_python', None):
+			return LooseVersion(safe_version(required_python_version))
+
+		raise VersionError(f"Package {self} does not have a python version requirement.")
+
+	@property
 	def version(self):
 		return self.information.get('info', {}).get('version', None)
 
@@ -61,7 +71,7 @@ class Package:
 
 	def set_destination(self, destination=None):
 		if not destination:
-			destination = storage['arguments']['destination']
+			destination = storage['arguments'].destination
 		if type(destination) is str:
 			destination = pathlib.Path(destination)
 
@@ -69,10 +79,10 @@ class Package:
 		self.destination = destination
 
 	def versions(self, limit=None):
-		if not limit and storage['arguments']['retain-versions']:
-			limit = int(storage['arguments']['retain-versions'])
+		if not limit and storage['arguments'].retain_versions:
+			limit = int(storage['arguments'].retain_versions)
 
-		if storage['arguments']['sort-algorithm'] == 'LooseVersion':
+		if storage['arguments'].sort_algorithm == 'LooseVersion':
 			versions = list(self.information.get('releases').keys())
 			versions.sort(key=LooseVersion)
 			versions.reverse()
@@ -80,25 +90,24 @@ class Package:
 			if limit and self.version not in versions[:limit]:
 				versions.insert(0, self.version)
 
-				return versions[:limit]
-			else:
-				return versions
+			return versions[:limit]
 		else:
-			log(f"Unknown sorting algorithm: {storage['arguments']['sort-algorithm']}", level=logging.ERROR, fg="red")
+			log(f"Unknown sorting algorithm: {storage['arguments'].sort_algorithm}", level=logging.ERROR, fg="red")
 			exit(1)
 
 	def download(self, version, destination=None, threaded=False, force=False) -> bool:
 		self.set_destination(destination)
 
 		if not self.information.get('releases', {}).get(version, None):
-			raise KeyError(f"Package {self.name} does not have a version called: {version}")
+			raise YankedPackage(f"Package {self.name} does not have a version called: {version}")
 
 		if force is False:
-			if storage['arguments']['licenses'] and any([license in self.license for license in storage['arguments']['licenses']]) is False:
-				raise DependencyError(f"Package {self.name}'s license {self.license} does not meet the license requirements: {storage['arguments']['licenses']}")
+			if storage['arguments'].licenses and any([license in self.license for license in storage['arguments'].licenses]) is False:
+				raise DependencyError(f"Package {self.name}'s license {self.license} does not meet the license requirements: {storage['arguments'].licenses}")
 
-			if storage['arguments']['py-versions'] and any([LooseVersion(self.version) >= LooseVersion(version) for version in storage['arguments']['py-versions']]) is False:
-				raise DependencyError(f"Package {self.name}'s versioning {self.version} does not meet the version requirements: {storage['arguments']['py-versions']}")
+			if storage['arguments'].py_versions and any([self.python_version >= LooseVersion(version) for version in storage['arguments'].py_versions]) is False:
+				raise DependencyError(f"Package {self.name}'s Python versioning {self.py_versions} does not meet the Python version requirements: {storage['arguments'].py_versions}")
+
 
 		if not self.destination.exists():
 			try:
@@ -108,6 +117,25 @@ class Package:
 
 		log(f"Processing {self}@version: {version}", fg="yellow", level=logging.INFO)
 		for file in self.information['releases'][version]:
+			target_architecture = False
+			
+			if file.get('python_version', None) == 'source':
+				# We always accept the source code, as it can be compiled anywhere.
+				target_architecture = True
+			if file['filename'] == f"{self.name}-{version}.tar.gz":
+				# We cannot reliably say that a straight up .tar.gz is NOT
+				# the supported architecture and we'll have to include it.
+				target_architecture = True
+			else:
+				for arch in storage['arguments'].architectures:
+					if f"{arch.lower()}." in file['filename'].lower():
+						target_architecture = True
+						break
+
+			if not target_architecture:
+				log(f"  {file['filename']} not in target architectures: {storage['arguments'].architectures}", level=logging.DEBUG, fg="orange")
+				continue
+
 			if (self.destination/file['filename']).exists():
 				with open(self.destination/file['filename'], 'rb') as fh:
 					if hashlib.sha256(fh.read()).hexdigest() == file.get('digests', {}).get('sha256', None):
@@ -116,9 +144,9 @@ class Package:
 					elif hashlib.md5(fh.read()).hexdigest() == file.get('digests', {}).get('md5', None):
 						log(f"  {file['filename']} (md5 matched)", level=logging.DEBUG)
 						continue
-			log(f"  Downloading: {file['filename']}", level=logging.INFO)
 
-			log(f"Sending request to {file['url']}", level=logging.DEBUG)
+			log(f"  Downloading: {file['filename']}", level=logging.INFO)
+			log(f"  Sending request to {file['url']}", level=logging.DEBUG)
 			request = urllib.request.urlopen(urllib.request.Request(file['url'], headers={'User-Agent': f"python-pypiapi-{storage['version']}"}))
 
 			try:
@@ -142,7 +170,7 @@ class PackageListing:
 		self._filter_packages = filter_packages
 
 	def __iter__(self):
-		if not storage['arguments']['cache-listing'] or len(self.buffer) == 0:
+		if not storage['arguments'].cache_listing or len(self.buffer) == 0:
 			if not self.socket:
 				self.connect()
 
@@ -152,7 +180,7 @@ class PackageListing:
 		filters = self.filter_packages
 
 		last_data = time.time()
-		while time.time() - last_data < storage['arguments']['timeout']:
+		while time.time() - last_data < storage['arguments'].timeout:
 			if self.socket:
 				data = None
 				for fileno, event in self.pollobj.poll(0.025):
@@ -168,7 +196,7 @@ class PackageListing:
 				self.buffer += data
 
 			last_newline = self.buffer.rfind(b'\n')
-			if storage['arguments']['cache-listing']:
+			if storage['arguments'].cache_listing:
 				packages = self.buffer[self.buffer_pos:last_newline]
 				self.buffer_pos = last_newline
 			else:
@@ -209,8 +237,8 @@ class PackageListing:
 			elif b'</html>' in package: # Package is a state variable from above, be wary about re-declaring it before this line
 				break
 
-		if time.time() - last_data >= storage['arguments']['timeout'] or b'</html>' in package:
-			log(f"No more packages recieved from http(s)://{storage['arguments']['mirror']}:{int(storage['arguments']['port'])}{storage['arguments']['simple-api']}/", level=logging.WARNING, fg="yellow")
+		if time.time() - last_data >= storage['arguments'].timeout or b'</html>' in package:
+			log(f"No more packages recieved from http(s)://{storage['arguments'].mirror}:{int(storage['arguments'].port)}{storage['arguments'].simple_api}/", level=logging.WARNING, fg="yellow")
 
 		self.disconnect()
 		return None
@@ -222,21 +250,21 @@ class PackageListing:
 
 	def connect(self):
 		self.socket = socket.socket()
-		self.socket.connect((storage['arguments']['mirror'], int(storage['arguments']['port'])))
-		if storage['arguments']['tls']:
+		self.socket.connect((storage['arguments'].mirror, int(storage['arguments'].port)))
+		if storage['arguments'].tls:
 			context = ssl.create_default_context()
-			self.socket = context.wrap_socket(self.socket, server_hostname=storage['arguments']['mirror'])
+			self.socket = context.wrap_socket(self.socket, server_hostname=storage['arguments'].mirror)
 
 		self.pollobj.register(self.socket.fileno(), EPOLLIN | EPOLLHUP)
 
-		self.GET(storage['arguments']['simple-api']+'/')
+		self.GET(storage['arguments'].simple_api+'/')
 
 	def GET(self, url):
 		if not self.socket:
 			self.connect()
 
 		header = f"GET {url} HTTP/1.1\r\n"
-		header += f"Host: {storage['arguments']['mirror']}\r\n"
+		header += f"Host: {storage['arguments'].mirror}\r\n"
 		header += f"User-Agent: python-pypiapi-{storage['version']}\r\n"
 		header += "\r\n"
 
@@ -277,8 +305,8 @@ class PackageListing:
 		log(f"Package listing is: {self.headers['content-length']} bytes")
 
 	def download(self):
-		if storage['arguments'].get('retain-versions', None):
-			for index in range(storage['arguments']['retain-versions']):
+		if storage['arguments'].get('retain_versions', None):
+			for index in range(storage['arguments'].retaine_verrsions):
 				for package in self:
 					try:
 						package.download(package.versions()[index])

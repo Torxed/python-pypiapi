@@ -1,48 +1,49 @@
 import sys
 import pathlib
-
-__version__ = '0.0.1.dev1'
-
-## Basic version of arg.parse() supporting:
-##  --key=value
-##  --boolean
-arguments = {}
-positionals = []
-
-# Setup some sane defaults
-arguments['mirror'] = 'pypi.org'
-arguments['port'] = 443
-arguments['tls'] = True
-arguments['simple-api'] = '/simple'
-arguments['json-api'] = '/pypi'
-# TDB: arguments['projects'] = 'archinstall,psycopg2'
-arguments['retain-versions'] = 3
-arguments['sort-algorithm'] = 'LooseVersion'
-# TBD: arguments['paralell'] = arguments['retain-versions'] * arguments['retain-versions'] # Allow 3 projects simultaniously
-# TBD: arguments['one-version-increments'] = True # Always download the latest version and come back for older later
-arguments['destination'] = './cache'
-arguments['timeout'] = 5
-arguments['cache-listing'] = True
-# Filters (only grabs packages that support these filters):
-arguments['py-versions'] = ''
-arguments['licenses'] = ''
-
-for arg in sys.argv[1:]:
-	if '--' == arg[:2]:
-		if '=' in arg:
-			key, val = [x.strip() for x in arg[2:].split('=', 1)]
-		else:
-			key, val = arg[2:], True
-		arguments[key] = val
-	else:
-		positionals.append(arg)
-
+import argparse
+import logging
 from .storage import *
-storage['arguments'] = arguments
+
+__version__ = '0.0.1.dev2'
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--mirror", default='pypi.org', type=str, nargs='?', help="Which upstream host contains the pypi API")
+parser.add_argument("--port", default=443, type=int, nargs='?', help="Which port to connect to against the --mirror")
+parser.add_argument("--tls", default=True, action="store_true", help="Enable TLS functionality against the API")
+parser.add_argument("--simple-api", default='/simple', type=str, nargs='?', help="Which endpoint contains the simple API")
+parser.add_argument("--json-api", default='/pypi', type=str, nargs='?', help="Which endpoint contains the JSON API")
+parser.add_argument("--retain-versions", default=3, type=int, nargs='?', help="What is the global retension of versions per package")
+parser.add_argument("--sort-algorithm", default='LooseVersion', type=str, nargs='?', help="Which version sort algorithm should be applied on --retain-versions")
+parser.add_argument("--destination", default='./cache', type=pathlib.Path, nargs='?', help="Where should we place the package results")
+parser.add_argument("--timeout", default=5, type=int, nargs='?', help="What global timeout should we have on trying to retrieve listings and packages")
+parser.add_argument("--cache-listing", action="store_true", default=True, help="")
+parser.add_argument("--py-versions", default='3', type=str, nargs='?', help="Which python versions of packages should we grab (default to only highest)")
+parser.add_argument("--licenses", default='', type=str, nargs='?', help="Which licenses should we filter on, detaul any. Example: --licenses 'MIT,GPLv3'")
+parser.add_argument("--architectures", default='x86_64,i686,win32,win_amd64,any', type=str, nargs='?', help="Which architectures (x86_64, i686, win32, win_amd64, etc) should we filter on, detaul any. Example: --licenses 'MIT,GPLv3'")
+parser.add_argument("--verbosity-level", default='info', type=str, nargs='?', help="Sets the lowest threashold for log messages, according to https://docs.python.org/3/library/logging.html#logging-levels")
+
+storage['arguments'], unknowns = parser.parse_known_args()
 storage['version'] = __version__
-arguments['destination'] = pathlib.Path(arguments['destination'])
-arguments['py-versions'] = [version for version in arguments['py-versions'].split(',') if version]
-arguments['licenses'] = [license for license in arguments['licenses'].split(',') if license]
+
+storage['arguments'].destination = storage['arguments'].destination.resolve()
+storage['arguments'].py_versions = [version for version in storage['arguments'].py_versions.split(',') if version]
+storage['arguments'].licenses = [license for license in storage['arguments'].licenses.split(',') if license]
+storage['arguments'].architectures = [arch for arch in storage['arguments'].architectures.split(',') if arch]
+
+match storage['arguments'].verbosity_level.lower():
+	case 'critical':
+		storage['arguments'].verbosity_level = logging.CRITICAL
+	case 'error':
+		storage['arguments'].verbosity_level = logging.ERROR
+	case 'warning':
+		storage['arguments'].verbosity_level = logging.WARNING
+	case 'info':
+		storage['arguments'].verbosity_level = logging.INFO
+	case 'debug':
+		storage['arguments'].verbosity_level = logging.DEBUG
+	case 'noset':
+		storage['arguments'].verbosity_level = logging.NOSET
+	
 
 from .packages import *
 from .sockethelpers import *

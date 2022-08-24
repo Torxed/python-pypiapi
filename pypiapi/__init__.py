@@ -22,6 +22,10 @@ parser.add_argument("--licenses", default='', type=str, nargs='?', help="Which l
 parser.add_argument("--architectures", default='x86_64,win_amd64,any', type=str, nargs='?', help="Which architectures (x86_64, i686, win32, win_amd64, etc) should we filter on, detaul any. Example: --licenses 'MIT,GPLv3'")
 parser.add_argument("--verbosity-level", default='info', type=str, nargs='?', help="Sets the lowest threashold for log messages, according to https://docs.python.org/3/library/logging.html#logging-levels")
 parser.add_argument("--paralell-downloads", default=2, type=int, nargs='?', help="Define how many paralell downloads can simulatniously be allowed to run.")
+parser.add_argument("--proxy-protocol", default="https", type=str, nargs='?', help="If a --proxy-host is set, which protocol should we use?.")
+parser.add_argument("--proxy-host", default=None, type=str, nargs='?', help="Define a proxy to use (ip or hostname).")
+parser.add_argument("--proxy-port", default=8080, type=int, nargs='?', help="Define a port to connect to the proxy.")
+parser.add_argument("--skip-unknown-py-versions", default=False, action="store_true", help="Enables skipping of packages that haven't defined a PyVersion >X.Y definition.")
 
 storage['arguments'], unknowns = parser.parse_known_args()
 storage['version'] = __version__
@@ -47,4 +51,5 @@ match storage['arguments'].verbosity_level.lower():
 	
 
 from .packages import *
+from .listing import PackageListing
 from .sockethelpers import *

@@ -9,15 +9,15 @@ pypiapi.storage['arguments'].retain_versions = 3
 pypiapi.storage['arguments'].py_versions = '3'
 
 async def get_packages(main_loop):
-	for package in pypiapi.PackageListing():
+	for index, package in enumerate(pypiapi.PackageListing()):
 		packages[package] = False
 
 		if main_loop.is_running() is False:
 			break
 
-		await asyncio.sleep(0.025)
+		await asyncio.sleep(0)
 
-	pypiapi.log(f"Done listing all the packages", level=logging.INFO, fg="green")
+	pypiapi.log(f"Done listing all {index} packages", level=logging.INFO, fg="green")
 
 async def download(listing_loop):
 	while listing_loop.done() is False or len(list(packages.keys())) > 0:
@@ -52,18 +52,14 @@ async def download(listing_loop):
 				# (Since download() is run until the listing is done)
 				del(packages[package])
 
-				await asyncio.sleep(0.0025)
-
 		else:
 			for package in list(packages.keys()):
 				for version in package.versions():
 					package.download(version)
 
-		await asyncio.sleep(0.025)
-
 if __name__ == '__main__':
-	# loop = asyncio.get_event_loop()
-	# listing = loop.create_task(get_packages(loop))
-	# loop.run_until_complete(download(listing))
 	loop = asyncio.get_event_loop()
-	loop.run_until_complete(get_packages(loop))
+	listing = loop.create_task(get_packages(loop))
+	loop.run_until_complete(download(listing))
+	# loop = asyncio.get_event_loop()
+	# loop.run_until_complete(get_packages(loop))

@@ -42,7 +42,7 @@ class PackageListing:
 		with urllib.request.urlopen('https://pypi.org/simple/') as f:
 			data = f.read()
 
-		last_package_count_update = time.time()-10
+		last_package_count_update = time.time()-60
 		package_count = 0
 
 		for line in data.split(b'\n'):
@@ -58,7 +58,7 @@ class PackageListing:
 				
 				yield package
 
-				if time.time() - last_package_count_update > 10:
+				if time.time() - last_package_count_update > 60:
 					log(f"Processing package {package_count}/{self.number_of_projects} @ {package}", level=logging.INFO, fg="gray")
 					last_package_count_update = time.time()
 

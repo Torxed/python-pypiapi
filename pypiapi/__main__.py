@@ -47,15 +47,21 @@ async def download(listing_loop):
 					if index == pypiapi.storage['arguments'].retain_versions - 1:
 						break
 
+					await asyncio.sleep(0)
+
 				# Once we're on the final version, remove the package
 				# To avoid iterating the package once more.
 				# (Since download() is run until the listing is done)
 				del(packages[package])
 
-		else:
-			for package in list(packages.keys()):
-				for version in package.versions():
-					package.download(version)
+				await asyncio.sleep(0)
+
+		# else:
+		# 	for package in list(packages.keys()):
+		# 		for version in package.versions():
+		# 			package.download(version)
+
+		await asyncio.sleep(0)
 
 if __name__ == '__main__':
 	loop = asyncio.get_event_loop()

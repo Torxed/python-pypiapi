@@ -36,7 +36,7 @@ class Package:
 		self.destination = None
 
 	def __repr__(self):
-		return f"Package(name={self.name}, version={self.version})"
+		return f"Package(name={self.name}, version={self.cache.get('info', {}).get('version', None)})"
 
 	@property
 	def name(self):
@@ -121,7 +121,12 @@ class Package:
 				return []
 
 			versions = self.clean_versions(versions)
-			versions.sort(key=LooseVersion)
+			try:
+				versions.sort(key=LooseVersion)
+			except TypeError:
+				log(f"Version contains illegal characters: {versions}")
+				return []
+
 			versions.reverse()
 
 			if limit and self.version not in versions[:limit]:
@@ -154,7 +159,7 @@ class Package:
 			except:
 				raise PermissionError(f"Could not create destination directory '{self.destination}' for package: {self.name}")
 
-		log(f"Initating download of {self}@version: {version}", fg="yellow", level=logging.INFO)
+		initated_output = False
 		for file in self.information['releases'][version]:
 			target_architecture = False
 			
@@ -186,6 +191,11 @@ class Package:
 
 			log(f"  Downloading: {file['filename']}", level=logging.INFO)
 			log(f"  Sending request to {file['url']}", level=logging.DEBUG)
+
+			if initated_output is False:
+				log(f"Initating download of {self}@version: {version}", fg="yellow", level=logging.INFO)
+				initated_output = True
+				
 			request = urllib.request.urlopen(urllib.request.Request(file['url'], headers={'User-Agent': f"python-pypiapi-{storage['version']}"}))
 
 			try:

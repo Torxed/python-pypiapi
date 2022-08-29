@@ -13,7 +13,7 @@ parser.add_argument("--tls", default=True, action="store_true", help="Enable TLS
 parser.add_argument("--simple-api", default='/simple', type=str, nargs='?', help="Which endpoint contains the simple API")
 parser.add_argument("--json-api", default='/pypi', type=str, nargs='?', help="Which endpoint contains the JSON API")
 parser.add_argument("--retain-versions", default=3, type=int, nargs='?', help="What is the global retension of versions per package")
-parser.add_argument("--sort-algorithm", default='LooseVersion', type=str, nargs='?', help="Which version sort algorithm should be applied on --retain-versions")
+parser.add_argument("--sort-algorithm", default='PackagingVersion', type=str, nargs='?', help="Which version sort algorithm should be applied on --retain-versions")
 parser.add_argument("--destination", default='./cache', type=pathlib.Path, nargs='?', help="Where should we place the package results")
 parser.add_argument("--timeout", default=5, type=int, nargs='?', help="What global timeout should we have on trying to retrieve listings and packages")
 parser.add_argument("--cache-listing", action="store_true", default=True, help="")

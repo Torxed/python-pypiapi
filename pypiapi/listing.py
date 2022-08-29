@@ -9,7 +9,6 @@ import urllib.error
 import urllib.request
 import hashlib
 import time
-from distutils.version import LooseVersion
 from typing import List
 
 from .storage import storage

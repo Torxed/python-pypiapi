@@ -11,6 +11,7 @@ import hashlib
 import time
 from distutils.version import LooseVersion
 from typing import List
+from packaging.version import Version, parse as VersionParser
 
 from .storage import storage
 from .sockethelpers import epoll, EPOLLIN, EPOLLHUP
@@ -52,7 +53,10 @@ class Package:
 	@property
 	def python_version(self):
 		if required_python_version := self.information.get('info', {}).get('requires_python', None):
-			return LooseVersion(safe_version(required_python_version))
+			if storage['arguments'].sort_algorithm == 'LooseVersion':
+				return LooseVersion(safe_version(required_python_version))
+			elif storage['arguments'].sort_algorithm == 'PackagingVersion':
+				return VersionParser(required_python_version)
 
 		if storage['arguments'].skip_unknown_py_versions is True:
 			raise VersionError(f"Package {self} does not have a python version requirement.")
@@ -111,31 +115,37 @@ class Package:
 		if not limit and storage['arguments'].retain_versions:
 			limit = int(storage['arguments'].retain_versions)
 
+		try:
+			versions = list(self.information.get('releases', {}).keys())
+		except InvalidPackage:
+			return []
+
+		if not versions:
+				return []
+
 		if storage['arguments'].sort_algorithm == 'LooseVersion':
-			try:
-				versions = list(self.information.get('releases', {}).keys())
-			except InvalidPackage:
-				return []
-
-			if not versions:
-				return []
-
 			versions = self.clean_versions(versions)
 			try:
 				versions.sort(key=LooseVersion)
 			except TypeError:
 				log(f"Version contains illegal characters: {versions}")
 				return []
-
-			versions.reverse()
-
-			if limit and self.version not in versions[:limit]:
-				versions.insert(0, self.version)
-
-			return versions[:limit]
+		elif storage['arguments'].sort_algorithm == 'PackagingVersion':
+			try:
+				versions.sort(key=VersionParser)
+			except TypeError:
+				log(f"Version contains illegal characters: {versions}")
+				return []
 		else:
 			log(f"Unknown sorting algorithm: {storage['arguments'].sort_algorithm}", level=logging.ERROR, fg="red")
 			exit(1)
+
+		versions.reverse()
+
+		if limit and self.version not in versions[:limit]:
+			versions.insert(0, self.version)
+
+		return versions[:limit]
 
 	def download(self, version, destination=None, threaded=False, force=False) -> bool:
 		self.set_destination(destination)
@@ -143,15 +153,25 @@ class Package:
 		if not version in list(self.information.get('releases', {}).keys()):
 			raise YankedPackage(f"Package {self.name} does not have a version called: {version}")
 
+		if storage['arguments'].sort_algorithm == 'LooseVersion':
+			SelectedVersionHandler = LooseVersion
+		elif storage['arguments'].sort_algorithm == 'PackagingVersion':
+			SelectedVersionHandler = VersionParser
+
 		if force is False:
 			if storage['arguments'].licenses and any([license in self.license for license in storage['arguments'].licenses]) is False:
 				raise DependencyError(f"Package {self.name}'s license {self.license} does not meet the license requirements: {storage['arguments'].licenses}")
 
 			try:
-				if self.python_version and storage['arguments'].py_versions and any([self.python_version >= LooseVersion(version) for version in storage['arguments'].py_versions]) is False:
+				if self.python_version and storage['arguments'].py_versions and any([self.python_version >= SelectedVersionHandler(version) for version in storage['arguments'].py_versions]) is False:
 					raise DependencyError(f"Package {self.name}'s Python versioning {self.python_version} does not meet the Python version requirements: {storage['arguments'].py_versions}")
 			except TypeError:
 				raise DependencyError(f"Package {self.name}'s Python versioning {self.python_version} does not meet the Python version requirements: {storage['arguments'].py_versions}")
+			except AttributeError as error:
+				print(error)
+				print(version)
+				print(self.cache)
+				exit(1)
 
 		if not self.destination.exists():
 			try:

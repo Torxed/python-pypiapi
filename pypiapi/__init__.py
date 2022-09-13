@@ -35,9 +35,6 @@ storage['arguments'].py_versions = [version for version in storage['arguments'].
 storage['arguments'].licenses = [license for license in storage['arguments'].licenses.split(',') if license]
 storage['arguments'].architectures = [arch for arch in storage['arguments'].architectures.split(',') if arch]
 
-print(storage['arguments'].py_versions)
-exit(1)
-
 match storage['arguments'].verbosity_level.lower():
 	case 'critical':
 		storage['arguments'].verbosity_level = logging.CRITICAL

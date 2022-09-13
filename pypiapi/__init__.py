@@ -17,7 +17,7 @@ parser.add_argument("--sort-algorithm", default='PackagingVersion', type=str, na
 parser.add_argument("--destination", default='./cache', type=pathlib.Path, nargs='?', help="Where should we place the package results")
 parser.add_argument("--timeout", default=5, type=int, nargs='?', help="What global timeout should we have on trying to retrieve listings and packages")
 parser.add_argument("--cache-listing", action="store_true", default=True, help="")
-parser.add_argument("--py-versions", default='3', type=str, nargs='?', help="Which python versions of packages should we grab (default to only highest)")
+parser.add_argument("--py-versions", default='>=3', type=str, nargs='?', help="Which python versions of packages should we grab (default to only highest)")
 parser.add_argument("--licenses", default='', type=str, nargs='?', help="Which licenses should we filter on, detaul any. Example: --licenses 'MIT,GPLv3'")
 parser.add_argument("--architectures", default='x86_64,win_amd64,any', type=str, nargs='?', help="Which architectures (x86_64, i686, win32, win_amd64, etc) should we filter on, detaul any. Example: --licenses 'MIT,GPLv3'")
 parser.add_argument("--verbosity-level", default='info', type=str, nargs='?', help="Sets the lowest threashold for log messages, according to https://docs.python.org/3/library/logging.html#logging-levels")

@@ -31,9 +31,12 @@ def safe_version(version):
 	return version.replace('>', '').replace('<', '').replace('=', '').replace('~', '').strip()
 
 class Package:
-	def __init__(self, name):
+	def __init__(self, name, cache=None):
+		if cache is None:
+			cache = {}
+
 		self._name = name
-		self.cache = {}
+		self.cache = cache
 		self.destination = None
 
 	def __repr__(self):
@@ -164,6 +167,10 @@ class Package:
 
 			try:
 				if self.python_version and storage['arguments'].py_versions and any([self.python_version >= SelectedVersionHandler(version) for version in storage['arguments'].py_versions]) is False:
+					print([self.python_version, storage['arguments'].py_versions])
+					for version in storage['arguments'].py_versions:
+						print([self.python_version, SelectedVersionHandler(version)], self.python_version >= SelectedVersionHandler(version))
+						
 					raise DependencyError(f"Package {self.name}'s Python versioning {self.python_version} does not meet the Python version requirements: {storage['arguments'].py_versions}")
 			except TypeError:
 				raise DependencyError(f"Package {self.name}'s Python versioning {self.python_version} does not meet the Python version requirements: {storage['arguments'].py_versions}")

@@ -75,3 +75,8 @@ class PackageListing:
 			return True
 		except InvalidPackage:
 			return False
+
+	def download(self):
+		for package in self:
+			for version in package.versions():
+				package.download(version, force=True)

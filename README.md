@@ -11,7 +11,7 @@ import pypiapi
 
 for package in pypiapi.PackageListing({"archinstall" : True, "psycopg2" : True, "pypiapi" : True}):
 	for version in package.versions():
-		package.download(version)
+		package.download(version, force=True)
 ```
 
 The next example grabs the same packages, but does so fully automated and as efficiently as possible.

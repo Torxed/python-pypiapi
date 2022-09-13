@@ -177,10 +177,15 @@ class Package:
 				raise DependencyError(f"Package {self.name}'s license {self.license} does not meet the license requirements: {storage['arguments'].licenses}")
 
 			try:
-				if self.python_version and storage['arguments'].py_version and self.python_version.contains(storage['arguments'].py_version) is False:
-					raise DependencyError(f"Package {self.name}'s Python versioning {self.python_version} does not meet the Python version requirements: {storage['arguments'].py_version}")
+				if storage['arguments'].sort_algorithm == 'SpecifierSet':
+					if self.python_version and storage['arguments'].py_version and self.python_version.contains(storage['arguments'].py_version) is False:
+						raise DependencyError(f"Package {self.name}'s Python versioning {self.python_version} does not meet the Python version requirements: {storage['arguments'].py_version}")
+				else:
+					if self.python_version and storage['arguments'].py_versions and any([self.python_version >= SelectedVersionHandler(version) for version in storage['arguments'].py_versions]) is False:
+						raise DependencyError(f"Package {self.name}'s Python versioning {self.python_version} does not meet the Python version requirements: {storage['arguments'].py_version}")
 			except TypeError:
 				raise DependencyError(f"Package {self.name}'s Python versioning {self.python_version} does not meet the Python version requirements: {storage['arguments'].py_version}")
+			
 			except AttributeError as error:
 				print(error)
 				print(version)

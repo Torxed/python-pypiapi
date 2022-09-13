@@ -168,12 +168,6 @@ class Package:
 		if not version in list(self.information.get('releases', {}).keys()):
 			raise YankedPackage(f"Package {self.name} does not have a version called: {version}")
 
-		# if storage['arguments'].sort_algorithm == 'LooseVersion':
-		# 	SelectedVersionHandler = LooseVersion
-		# elif storage['arguments'].sort_algorithm == 'PackagingVersion':
-		# 	SelectedVersionHandler = VersionParser
-		# elif storage['arguments'].sort_algorithm == 'SpecifierSet':
-		# 	SelectedVersionHandler = SpecifierSet
 
 		if force is False:
 			if storage['arguments'].licenses and any([license in self.license for license in storage['arguments'].licenses]) is False:
@@ -184,6 +178,10 @@ class Package:
 					if self.python_version and storage['arguments'].py_version and self.python_version.contains(storage['arguments'].py_version) is False:
 						raise DependencyError(f"Package {self.name}'s Python versioning {self.python_version} does not meet the Python version requirements: {storage['arguments'].py_version}")
 				else:
+					if storage['arguments'].sort_algorithm == 'LooseVersion':
+						SelectedVersionHandler = LooseVersion
+					elif storage['arguments'].sort_algorithm == 'PackagingVersion':
+						SelectedVersionHandler = VersionParser
 					if self.python_version and storage['arguments'].py_versions and any([self.python_version >= SelectedVersionHandler(version) for version in storage['arguments'].py_versions]) is False:
 						raise DependencyError(f"Package {self.name}'s Python versioning {self.python_version} does not meet the Python version requirements: {storage['arguments'].py_version}")
 			except TypeError:

@@ -5,9 +5,6 @@ import asyncio
 
 packages = {}
 
-pypiapi.storage['arguments'].retain_versions = 3
-pypiapi.storage['arguments'].py_versions = '3'
-
 async def get_packages(main_loop):
 	for index, package in enumerate(pypiapi.PackageListing()):
 		packages[package] = False

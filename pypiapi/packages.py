@@ -11,7 +11,7 @@ import hashlib
 import time
 from typing import List
 from distutils.version import LooseVersion
-from packaging.version import Version, parse as VersionParser
+from packaging.version import Version, parse as VersionParser, InvalidVersion
 from packaging.specifiers import SpecifierSet
 
 from .storage import storage
@@ -146,6 +146,9 @@ class Package:
 			try:
 				versions.sort(key=Version)
 			except TypeError:
+				log(f"Version contains illegal characters: {versions}")
+				return []
+			except packaging.version.InvalidVersion:
 				log(f"Version contains illegal characters: {versions}")
 				return []
 		else:

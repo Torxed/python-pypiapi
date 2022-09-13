@@ -9,9 +9,10 @@ import urllib.error
 import urllib.request
 import hashlib
 import time
-from distutils.version import LooseVersion
 from typing import List
+from distutils.version import LooseVersion
 from packaging.version import Version, parse as VersionParser
+from packaging.specifiers import SpecifierSet
 
 from .storage import storage
 from .sockethelpers import epoll, EPOLLIN, EPOLLHUP
@@ -60,6 +61,8 @@ class Package:
 				return LooseVersion(safe_version(required_python_version))
 			elif storage['arguments'].sort_algorithm == 'PackagingVersion':
 				return VersionParser(required_python_version)
+			elif storage['arguments'].sort_algorithm == 'SpecifierSet':
+				return SpecifierSet(required_python_version)
 
 		if storage['arguments'].skip_unknown_py_versions is True:
 			raise VersionError(f"Package {self} does not have a python version requirement.")
@@ -139,6 +142,12 @@ class Package:
 			except TypeError:
 				log(f"Version contains illegal characters: {versions}")
 				return []
+		elif storage['arguments'].sort_algorithm == 'SpecifierSet':
+			try:
+				versions.sort(key=Version)
+			except TypeError:
+				log(f"Version contains illegal characters: {versions}")
+				return []
 		else:
 			log(f"Unknown sorting algorithm: {storage['arguments'].sort_algorithm}", level=logging.ERROR, fg="red")
 			exit(1)
@@ -156,24 +165,22 @@ class Package:
 		if not version in list(self.information.get('releases', {}).keys()):
 			raise YankedPackage(f"Package {self.name} does not have a version called: {version}")
 
-		if storage['arguments'].sort_algorithm == 'LooseVersion':
-			SelectedVersionHandler = LooseVersion
-		elif storage['arguments'].sort_algorithm == 'PackagingVersion':
-			SelectedVersionHandler = VersionParser
+		# if storage['arguments'].sort_algorithm == 'LooseVersion':
+		# 	SelectedVersionHandler = LooseVersion
+		# elif storage['arguments'].sort_algorithm == 'PackagingVersion':
+		# 	SelectedVersionHandler = VersionParser
+		# elif storage['arguments'].sort_algorithm == 'SpecifierSet':
+		# 	SelectedVersionHandler = SpecifierSet
 
 		if force is False:
 			if storage['arguments'].licenses and any([license in self.license for license in storage['arguments'].licenses]) is False:
 				raise DependencyError(f"Package {self.name}'s license {self.license} does not meet the license requirements: {storage['arguments'].licenses}")
 
 			try:
-				if self.python_version and storage['arguments'].py_versions and any([self.python_version >= SelectedVersionHandler(version) for version in storage['arguments'].py_versions]) is False:
-					print([self.python_version, storage['arguments'].py_versions])
-					for version in storage['arguments'].py_versions:
-						print([self.python_version, SelectedVersionHandler(version)], self.python_version >= SelectedVersionHandler(version))
-						
-					raise DependencyError(f"Package {self.name}'s Python versioning {self.python_version} does not meet the Python version requirements: {storage['arguments'].py_versions}")
+				if self.python_version and storage['arguments'].py_version and self.python_version.contains(storage['arguments'].py_version) is False:
+					raise DependencyError(f"Package {self.name}'s Python versioning {self.python_version} does not meet the Python version requirements: {storage['arguments'].py_version}")
 			except TypeError:
-				raise DependencyError(f"Package {self.name}'s Python versioning {self.python_version} does not meet the Python version requirements: {storage['arguments'].py_versions}")
+				raise DependencyError(f"Package {self.name}'s Python versioning {self.python_version} does not meet the Python version requirements: {storage['arguments'].py_version}")
 			except AttributeError as error:
 				print(error)
 				print(version)

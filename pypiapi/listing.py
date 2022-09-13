@@ -53,6 +53,10 @@ class PackageListing:
 				package_name = pathlib.Path(package_url).name
 
 				package_count += 1
+
+				if self._packages and package_name not in self._packages:
+					continue
+
 				package = Package(package_name)
 				
 				yield package

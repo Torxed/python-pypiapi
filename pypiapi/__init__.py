@@ -13,21 +13,24 @@ parser.add_argument("--tls", default=True, action="store_true", help="Enable TLS
 parser.add_argument("--simple-api", default='/simple', type=str, nargs='?', help="Which endpoint contains the simple API")
 parser.add_argument("--json-api", default='/pypi', type=str, nargs='?', help="Which endpoint contains the JSON API")
 parser.add_argument("--retain-versions", default=3, type=int, nargs='?', help="What is the global retension of versions per package")
-parser.add_argument("--sort-algorithm", default='LooseVersion', type=str, nargs='?', help="Which version sort algorithm should be applied on --retain-versions")
+parser.add_argument("--sort-algorithm", default='SpecifierSet', type=str, nargs='?', help="Which version sort algorithm should be applied on --retain-versions")
 parser.add_argument("--destination", default='./cache', type=pathlib.Path, nargs='?', help="Where should we place the package results")
 parser.add_argument("--timeout", default=5, type=int, nargs='?', help="What global timeout should we have on trying to retrieve listings and packages")
 parser.add_argument("--cache-listing", action="store_true", default=True, help="")
-parser.add_argument("--py-versions", default='3', type=str, nargs='?', help="Which python versions of packages should we grab (default to only highest)")
+parser.add_argument("--py-version", default='3.10', type=str, nargs='?', help="Which python version do we support (default to the highest possible)")
 parser.add_argument("--licenses", default='', type=str, nargs='?', help="Which licenses should we filter on, detaul any. Example: --licenses 'MIT,GPLv3'")
 parser.add_argument("--architectures", default='x86_64,win_amd64,any', type=str, nargs='?', help="Which architectures (x86_64, i686, win32, win_amd64, etc) should we filter on, detaul any. Example: --licenses 'MIT,GPLv3'")
 parser.add_argument("--verbosity-level", default='info', type=str, nargs='?', help="Sets the lowest threashold for log messages, according to https://docs.python.org/3/library/logging.html#logging-levels")
 parser.add_argument("--paralell-downloads", default=2, type=int, nargs='?', help="Define how many paralell downloads can simulatniously be allowed to run.")
+parser.add_argument("--proxy-protocol", default="https", type=str, nargs='?', help="If a --proxy-host is set, which protocol should we use?.")
+parser.add_argument("--proxy-host", default=None, type=str, nargs='?', help="Define a proxy to use (ip or hostname).")
+parser.add_argument("--proxy-port", default=8080, type=int, nargs='?', help="Define a port to connect to the proxy.")
+parser.add_argument("--skip-unknown-py-versions", default=False, action="store_true", help="Enables skipping of packages that haven't defined a PyVersion >X.Y definition.")
 
 storage['arguments'], unknowns = parser.parse_known_args()
 storage['version'] = __version__
 
 storage['arguments'].destination = storage['arguments'].destination.resolve()
-storage['arguments'].py_versions = [version for version in storage['arguments'].py_versions.split(',') if version]
 storage['arguments'].licenses = [license for license in storage['arguments'].licenses.split(',') if license]
 storage['arguments'].architectures = [arch for arch in storage['arguments'].architectures.split(',') if arch]
 
@@ -47,4 +50,5 @@ match storage['arguments'].verbosity_level.lower():
 	
 
 from .packages import *
+from .listing import PackageListing
 from .sockethelpers import *

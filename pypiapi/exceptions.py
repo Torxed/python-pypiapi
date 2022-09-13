@@ -6,3 +6,6 @@ class VersionError(BaseException):
 
 class YankedPackage(BaseException):
 	pass
+
+class InvalidPackage(BaseException):
+	pass

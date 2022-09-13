@@ -82,9 +82,11 @@ These flags are as follows:
 
     Has to be overridden with --cache-listing='' if you wish to turn it off.
 
---py-versions=[3.0[,3.5]]
-    This will download only packages that can meet the given version requirement.
-    Default is to not filter out any supported versions and download all packages.
+--py-version=3.10
+    This tells the downloader what package criterie needs to be met.
+    The package needs to support the given Python version to be downloaded unless force=True.
+    This used to be --py-versions and you used to be able to supply multiple and complex patterns, see issue:
+    https://github.com/pypa/packaging/issues/591
 
 --licenses=[gpl[,mit]]
     Only packages that contain the given licensing short names will be downloaded.

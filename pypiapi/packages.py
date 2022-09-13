@@ -148,7 +148,7 @@ class Package:
 			except TypeError:
 				log(f"Version contains illegal characters: {versions}")
 				return []
-			except packaging.version.InvalidVersion:
+			except InvalidVersion:
 				log(f"Version contains illegal characters: {versions}")
 				return []
 		else:

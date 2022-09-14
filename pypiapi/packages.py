@@ -12,7 +12,7 @@ import time
 from typing import List
 from distutils.version import LooseVersion
 from packaging.version import Version, parse as VersionParser, InvalidVersion
-from packaging.specifiers import SpecifierSet
+from packaging.specifiers import SpecifierSet, InvalidSpecifier
 
 from .storage import storage
 from .sockethelpers import epoll, EPOLLIN, EPOLLHUP
@@ -185,6 +185,8 @@ class Package:
 					if self.python_version and storage['arguments'].py_versions and any([self.python_version >= SelectedVersionHandler(version) for version in storage['arguments'].py_versions]) is False:
 						raise DependencyError(f"Package {self.name}'s Python versioning {self.python_version} does not meet the Python version requirements: {storage['arguments'].py_version}")
 			except TypeError:
+				raise DependencyError(f"Package {self.name}'s Python versioning {self.python_version} does not meet the Python version requirements: {storage['arguments'].py_version}")
+			except InvalidSpecifier:
 				raise DependencyError(f"Package {self.name}'s Python versioning {self.python_version} does not meet the Python version requirements: {storage['arguments'].py_version}")
 			
 			except AttributeError as error:

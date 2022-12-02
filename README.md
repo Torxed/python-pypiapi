@@ -14,6 +14,7 @@ $ python -m pypiapi --tls --cache-listing --retain-versions 3 --architectures 'x
 ````
 
 And as per usual, `python -m pypiapi --help` to see what the parameters do.
+Since the project uses `urllib`, proxy configurations is done via environment variable `HTTPS_PROXY`.
 
 ## Library/Scripting
 

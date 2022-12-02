@@ -19,6 +19,7 @@ async def get_packages(main_loop):
 async def download(listing_loop):
 	while listing_loop.done() is False or len(list(packages.keys())) > 0:
 		if pypiapi.storage['arguments'].retain_versions:
+
 			for package in list(packages.keys()):
 				if packages[package] is False:
 					try:
@@ -31,7 +32,12 @@ async def download(listing_loop):
 
 					packages[package] = True
 
+				initated_output = False
 				for index, version in enumerate(package.versions()):
+					if initated_output is False:
+						pypiapi.log(f"Initating download of {package}@version: {version}", fg="yellow", level=logging.INFO)
+						initated_output = True
+
 					try:
 						package.download(version)
 					except pypiapi.DependencyError as err:

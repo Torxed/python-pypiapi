@@ -79,7 +79,7 @@ class Package:
 		self.set_destination()
 
 		if not self.cache and self.destination.exists() is False:
-			log(f"Sending request to https://{storage['arguments'].mirror}{storage['arguments'].json_api}/{self._name}/json", level=logging.DEBUG)
+			log(f"Gathering JSON information via https://{storage['arguments'].mirror}{storage['arguments'].json_api}/{self._name}/json", level=logging.DEBUG)
 			try:
 				request = urllib.request.urlopen(urllib.request.Request(f"https://{storage['arguments'].mirror}{storage['arguments'].json_api}/{self._name}/json", headers={'User-Agent': f"python-pypiapi-{storage['version']}"}))
 			except urllib.error.HTTPError as error:
@@ -201,7 +201,12 @@ class Package:
 			except:
 				raise PermissionError(f"Could not create destination directory '{self.destination}' for package: {self.name}")
 
-		initated_output = False
+		if self.name == '0-orchestrator':
+			# print(json.dumps(self.information, indent=4))
+			print(self.versions())
+		else:
+			return
+
 		for file in self.information['releases'][version]:
 			target_architecture = False
 			
@@ -233,16 +238,14 @@ class Package:
 
 			log(f"  Downloading: {file['filename']}", level=logging.INFO)
 			log(f"  Sending request to {file['url']}", level=logging.DEBUG)
-
-			if initated_output is False:
-				log(f"Initating download of {self}@version: {version}", fg="yellow", level=logging.INFO)
-				initated_output = True
 				
 			request = urllib.request.urlopen(urllib.request.Request(file['url'], headers={'User-Agent': f"python-pypiapi-{storage['version']}"}))
+			print(request)
 
 			try:
 				with open(self.destination/file['filename'], "wb") as version_fh:
 					version_fh.write(request.read())
+				print('Downloaded!')
 			except urllib.error.URLError as err:
 				(self.destination/file['filename']).unlink()
 				log(f"Could not download {file['filename']} due to: {err}", level=logging.ERROR, fg="red")

@@ -3,6 +3,20 @@ Python library to interact with the pypi.org simple API defined in [PEP-503](htt
 
 # Usage
 
+Simplest usage would be to use pypi as a module.
+
+## CLI
+
+This example will download 3 versions of everything available on pypi.org for architectures matching `x86_64` and packages marked as `any` *(or `None` defined)*.
+
+```bash
+$ python -m pypiapi --tls --cache-listing --retain-versions 3 --architectures 'x86_64,any' --paralell-downloads 3
+````
+
+And as per usual, `python -m pypiapi --help` to see what the parameters do.
+
+## Library/Scripting
+
 The following example filters out three libraries and download them one version at a time.<br>
 This example relies on manually downloading each package, giving full control of how and when certain packages are downloaded.
 
